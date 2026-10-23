@@ -109,58 +109,129 @@ export const LoanList: React.FC<LoanListProps> = ({ loans, onRepayLoan, onOpenAd
           </button>
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="loans-table">
-            <thead>
-              <tr>
-                <th scope="col">Friend Name</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Due Date</th>
-                <th scope="col">Status</th>
-                <th scope="col" className="text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLoans.map((loan) => {
-                const overdue = isLoanOverdue(loan);
+        <>
+          {/* Desktop Table View */}
+          <div className="table-wrapper desktop-loans-view">
+            <table className="loans-table">
+              <thead>
+                <tr>
+                  <th scope="col">Friend Name</th>
+                  <th scope="col">Amount</th>
+                  <th scope="col">Due Date</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLoans.map((loan) => {
+                  const overdue = isLoanOverdue(loan);
 
-                return (
-                  <tr
-                    key={loan.id}
-                    className={`loan-row ${overdue ? 'row-overdue' : ''} ${loan.isRepaid ? 'row-repaid' : ''}`}
-                  >
-                    {/* Friend Name */}
-                    <td className="cell-friend">
-                      <div className="friend-info">
-                        <div className="avatar-circle" aria-hidden="true">
-                          {loan.friendName.charAt(0).toUpperCase()}
+                  return (
+                    <tr
+                      key={loan.id}
+                      className={`loan-row ${overdue ? 'row-overdue' : ''} ${loan.isRepaid ? 'row-repaid' : ''}`}
+                    >
+                      {/* Friend Name */}
+                      <td className="cell-friend">
+                        <div className="friend-info">
+                          <div className="avatar-circle" aria-hidden="true">
+                            {loan.friendName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="friend-details">
+                            <span className="friend-name">{loan.friendName}</span>
+                            <span className="loan-date-created">Added {formatDate(loan.createdAt)}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="friend-name">{loan.friendName}</span>
-                          <span className="loan-date-created">Added {formatDate(loan.createdAt)}</span>
+                      </td>
+
+                      {/* Amount */}
+                      <td className="cell-amount">
+                        <span className="amount-value">{formatCurrency(loan.amount)}</span>
+                      </td>
+
+                      {/* Due Date */}
+                      <td className="cell-due-date">
+                        <div className="date-wrapper">
+                          <span className={`due-date ${overdue ? 'text-danger font-medium' : ''}`}>
+                            {formatDate(loan.dueDate)}
+                          </span>
+                          {overdue && (
+                            <span className="overdue-tag">Past Due</span>
+                          )}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Amount */}
-                    <td className="cell-amount">
-                      <span className="amount-value">{formatCurrency(loan.amount)}</span>
-                    </td>
-
-                    {/* Due Date */}
-                    <td className="cell-due-date">
-                      <div className="date-wrapper">
-                        <span className={`due-date ${overdue ? 'text-danger font-medium' : ''}`}>
-                          {formatDate(loan.dueDate)}
-                        </span>
-                        {overdue && (
-                          <span className="overdue-tag">Past Due</span>
+                      {/* Status Badge */}
+                      <td className="cell-status">
+                        {loan.isRepaid ? (
+                          <span className="badge badge-success">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Repaid
+                          </span>
+                        ) : overdue ? (
+                          <span className="badge badge-danger">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <line x1="12" y1="8" x2="12" y2="12"></line>
+                              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            Overdue
+                          </span>
+                        ) : (
+                          <span className="badge badge-pending">Pending</span>
                         )}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Status Badge */}
-                    <td className="cell-status">
+                      {/* Action */}
+                      <td className="cell-action text-right">
+                        {loan.isRepaid ? (
+                          <span className="repaid-note" title={loan.repaidAt ? `Repaid on ${formatDate(loan.repaidAt)}` : 'Repaid'}>
+                            ✓ Settled
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-repay"
+                            onClick={() => onRepayLoan(loan.id)}
+                            title={`Mark loan to ${loan.friendName} as repaid`}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Mark Repaid
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="mobile-loans-view">
+            {filteredLoans.map((loan) => {
+              const overdue = isLoanOverdue(loan);
+
+              return (
+                <div
+                  key={loan.id}
+                  className={`loan-mobile-card ${overdue ? 'card-overdue' : ''} ${loan.isRepaid ? 'card-repaid' : ''}`}
+                >
+                  <div className="mobile-card-header">
+                    <div className="friend-info">
+                      <div className="avatar-circle" aria-hidden="true">
+                        {loan.friendName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="friend-details">
+                        <span className="friend-name">{loan.friendName}</span>
+                        <span className="loan-date-created">Added {formatDate(loan.createdAt)}</span>
+                      </div>
+                    </div>
+                    <div className="mobile-card-status">
                       {loan.isRepaid ? (
                         <span className="badge badge-success">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -180,34 +251,53 @@ export const LoanList: React.FC<LoanListProps> = ({ loans, onRepayLoan, onOpenAd
                       ) : (
                         <span className="badge badge-pending">Pending</span>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Action */}
-                    <td className="cell-action text-right">
-                      {loan.isRepaid ? (
-                        <span className="repaid-note" title={loan.repaidAt ? `Repaid on ${formatDate(loan.repaidAt)}` : 'Repaid'}>
-                          ✓ Settled
+                  <div className="mobile-card-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Amount Lent</span>
+                      <span className="detail-value amount-value">{formatCurrency(loan.amount)}</span>
+                    </div>
+                    <div className="detail-item text-right">
+                      <span className="detail-label">Due Date</span>
+                      <div className="date-wrapper justify-end">
+                        <span className={`detail-value due-date ${overdue ? 'text-danger font-medium' : ''}`}>
+                          {formatDate(loan.dueDate)}
                         </span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-repay"
-                          onClick={() => onRepayLoan(loan.id)}
-                          title={`Mark loan to ${loan.friendName} as repaid`}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          Mark Repaid
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {overdue && (
+                          <span className="overdue-tag">Past Due</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mobile-card-actions">
+                    {loan.isRepaid ? (
+                      <div className="repaid-status-box">
+                        <span className="repaid-note">
+                          ✓ Settled {loan.repaidAt ? `on ${formatDate(loan.repaidAt)}` : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-block btn-repay btn-mobile-repay"
+                        onClick={() => onRepayLoan(loan.id)}
+                        title={`Mark loan to ${loan.friendName} as repaid`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Mark as Repaid</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

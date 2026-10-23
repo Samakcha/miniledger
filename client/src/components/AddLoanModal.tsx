@@ -118,7 +118,7 @@ export const AddLoanModal: React.FC<AddLoanModalProps> = ({ isOpen, onClose, onS
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} className="modal-form" noValidate>
           <div className="modal-body">
             {/* Friend Name */}
             <div className="form-group">
