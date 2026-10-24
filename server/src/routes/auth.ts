@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
-import { otpService, normalizePhoneNumber } from '../services/otp';
+import { otpService, normalizePhoneNumber, isDemoOtpEnabled } from '../services/otp';
 import { generateToken, authenticateToken } from '../middleware/auth';
 
 const router = Router();
@@ -42,6 +42,15 @@ router.post('/request-otp', (req: Request, res: Response, next: NextFunction): v
       return;
     }
 
+    if (result.demoMode) {
+      res.status(200).json({
+        success: true,
+        message: result.message || 'Demo mode is active. Please enter the demo verification code to continue.',
+        demoMode: true,
+      });
+      return;
+    }
+
     // Success response - never disclose OTP or whether user exists
     res.status(200).json({
       success: true,
@@ -79,8 +88,10 @@ router.post('/verify-otp', async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    // Verify OTP using constant-time check & attempt limits
-    const verifyResult = otpService.verifyOtp(normalizedPhone, otp);
+    // Verify OTP using constant-time check & attempt limits (or explicitly enabled demo path)
+    const verifyResult = isDemoOtpEnabled()
+      ? otpService.verifyDemoOtp(normalizedPhone, otp)
+      : otpService.verifyOtp(normalizedPhone, otp);
 
     if (!verifyResult.valid) {
       const statusCode = verifyResult.status || 400;

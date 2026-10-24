@@ -16,6 +16,21 @@ MiniLedger is a clean, minimal personal finance application designed for trackin
 
 ---
 
+## Demo Login
+
+MiniLedger currently supports demo OTP authentication, so you can test the application without receiving an SMS.
+
+**How to log in:**
+1. Open the MiniLedger website.
+2. Enter your phone number, including the country code.
+3. Click **Send One-Time Code**.
+4. Enter the demo OTP: `123456`.
+5. Click **Verify & Open Dashboard** to access the application.
+
+**Note:** The demo OTP is intended for testing and demonstration purposes. Real SMS delivery is not currently configured.
+
+---
+
 ## Technology Stack
 
 | Layer | Technologies |
@@ -125,6 +140,9 @@ DATABASE_URL="postgresql://user:password@ep-example-123456.us-east-2.aws.neon.te
 
 # Strong secret key for signing authentication JWT tokens
 JWT_SECRET="your-secure-random-jwt-secret-key-here"
+
+# Demo OTP mode toggle (disabled by default, set to true for reviewer demo deployments)
+DEMO_OTP_ENABLED=false
 ```
 
 > **Security Note**: `server/.env` is strictly ignored by Git and must never be committed.
@@ -143,6 +161,9 @@ Configure `client/.env`:
 ```env
 # Base URL for the Express API server
 VITE_API_BASE_URL=http://localhost:5001
+
+# Demo OTP mode toggle (disabled by default, set to true for reviewer demo deployments)
+VITE_DEMO_OTP_ENABLED=false
 ```
 
 ---
@@ -258,9 +279,9 @@ cd server
 npm run test
 ```
 
-### Test Coverage Highlights (23 Tests Total)
+### Test Coverage Highlights (29 Tests Total)
 
-- **Authentication Suite (`auth.test.ts` — 12 tests)**:
+- **Authentication Suite (`auth.test.ts` — 18 tests)**:
   - OTP request success without leaking OTP in response.
   - Server console OTP logging validation.
   - Correct OTP verification & token generation.
@@ -269,6 +290,11 @@ npm run test
   - Attempt rate-limiting protection.
   - JWT middleware token validation and rejection of invalid/expired tokens.
   - API health check stability.
+  - Rejection of universal OTP `123456` when demo mode is disabled.
+  - Demo OTP request and verification with `123456` without requiring in-memory storage (serverless-compatible).
+  - Verification of demo-generated JWT against `/api/auth/me`.
+  - Strict rejection of invalid phone numbers in both demo and standard modes.
+  - Demo verification abuse protection (5-attempt lockout).
 - **Loan API Suite (`loans.test.ts` — 11 tests)**:
   - Unauthenticated access rejection (401).
   - Loan creation with valid friend name, decimal amount, and due date.

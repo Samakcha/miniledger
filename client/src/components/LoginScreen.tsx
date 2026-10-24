@@ -7,6 +7,10 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+  const isEnvDemo = import.meta.env.VITE_DEMO_OTP_ENABLED === 'true';
+  const [isBackendDemo, setIsBackendDemo] = useState(false);
+  const isDemoActive = isEnvDemo || isBackendDemo;
+
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
@@ -31,6 +35,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     try {
       const res = await api.requestOtp(trimmedPhone);
       setIsLoading(false);
+      if (res.demoMode) {
+        setIsBackendDemo(true);
+      }
       setStep('OTP');
       setInfoMessage(res.message || 'OTP generated successfully.');
     } catch (err: any) {
@@ -84,6 +91,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     try {
       const res = await api.requestOtp(phone.trim());
       setIsLoading(false);
+      if (res.demoMode) {
+        setIsBackendDemo(true);
+      }
       setInfoMessage(res.message || 'A new OTP has been printed to the server console.');
     } catch (err: any) {
       setIsLoading(false);
@@ -115,6 +125,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 : `Enter the 6-digit code for ${phone}.`}
             </p>
           </div>
+
+          {/* Demo Mode Notice (rendered when demo mode is active) */}
+          {isDemoActive && (
+            <div className="demo-notice-banner" role="status">
+              <span className="demo-notice-badge">DEMO MODE ACTIVE</span>
+              <span className="demo-notice-text">
+                Reviewer demo mode is enabled. Use any valid phone number; your verification code is <strong>123456</strong>.
+              </span>
+            </div>
+          )}
 
           {/* Info Banner */}
           {infoMessage && (
@@ -198,14 +218,28 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 />
               </div>
 
-              <div className="otp-hint-box">
-                <div className="otp-server-note">
+              <div className="otp-hint-box" role="status">
+                <div className="otp-demo-note">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polyline points="4 17 10 11 4 5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
                   </svg>
-                  <span>Check server terminal for logged OTP</span>
+                  <span>Demo OTP: <strong className="otp-code-highlight">123456</strong></span>
                 </div>
+                <button
+                  type="button"
+                  className="otp-copy-btn"
+                  onClick={() => {
+                    if (navigator.clipboard) {
+                      navigator.clipboard.writeText('123456');
+                    }
+                    setOtp('123456');
+                  }}
+                  title="Copy and fill demo OTP 123456"
+                >
+                  Copy Code
+                </button>
               </div>
 
               <button

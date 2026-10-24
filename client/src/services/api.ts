@@ -106,8 +106,8 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
  */
 export const api = {
   // --- Auth APIs ---
-  async requestOtp(phone: string): Promise<{ success: boolean; message: string }> {
-    return apiFetch<{ success: boolean; message: string }>('/api/auth/request-otp', {
+  async requestOtp(phone: string): Promise<{ success: boolean; message: string; demoMode?: boolean }> {
+    return apiFetch<{ success: boolean; message: string; demoMode?: boolean }>('/api/auth/request-otp', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     });
