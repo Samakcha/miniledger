@@ -7,6 +7,7 @@ import { LoanList } from './components/LoanList';
 import { EmptyState } from './components/EmptyState';
 import { AddLoanModal } from './components/AddLoanModal';
 import { LoginScreen } from './components/LoginScreen';
+import { BackgroundVideo } from './components/BackgroundVideo';
 
 const defaultEmptySummary: LoanSummary = {
   totalLent: '0.00',
@@ -166,113 +167,112 @@ export const App: React.FC = () => {
     }
   };
 
-  // Session checking splash
-  if (isCheckingSession) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Connecting to MiniLedger...</p>
-      </div>
-    );
-  }
-
-  // If not authenticated, render Login Screen
-  if (!isAuthenticated || !user) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-  }
-
   return (
-    <div className="app-layout">
-      {/* Top Navigation */}
-      <Navbar
-        user={user}
-        onLogout={handleLogout}
-        onOpenAddModal={() => setIsAddModalOpen(true)}
-      />
+    <>
+      {/* Shared animated background across login, loading, and dashboard */}
+      <BackgroundVideo />
 
-      {/* Main Content Area */}
-      <main className="main-content">
-        <div className="content-container">
-          {/* Global feedback message toast */}
-          {globalMessage && (
-            <div
-              className={`alert ${globalMessage.type === 'success' ? 'alert-success' : 'alert-danger'} mb-4`}
-              role="alert"
-            >
-              <span>{globalMessage.text}</span>
-            </div>
-          )}
-
-          {/* Welcome & Action Header */}
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Ledger Overview</h1>
-              <p className="page-subtitle">
-                Real-time loan balances and repayment tracking connected to your personal ledger.
-              </p>
-            </div>
-
-            <div className="header-actions">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={loadLedgerData}
-                disabled={isLoadingData}
-                title="Refresh loans and summary from server"
-              >
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={isLoadingData ? 'spin-icon' : ''}
-                  aria-hidden="true"
-                >
-                  <polyline points="23 4 23 10 17 10"></polyline>
-                  <polyline points="1 20 1 14 7 14"></polyline>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-                <span>{isLoadingData ? 'Refreshing...' : 'Refresh'}</span>
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setIsAddModalOpen(true)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Record Loan</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Financial Summary Cards */}
-          <SummaryCards summary={summary} totalLoansCount={loans.length} />
-
-          {/* Loan List or Empty State */}
-          {isLoadingData && loans.length === 0 ? (
-            <div className="card loading-card">
-              <div className="spinner"></div>
-              <p>Loading your loans from database...</p>
-            </div>
-          ) : loans.length === 0 ? (
-            <EmptyState onAddLoan={() => setIsAddModalOpen(true)} />
-          ) : (
-            <LoanList
-              loans={loans}
-              onRepayLoan={handleRepayLoan}
-              onOpenAddModal={() => setIsAddModalOpen(true)}
-            />
-          )}
+      {isCheckingSession ? (
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <p>Connecting to MiniLedger...</p>
         </div>
-      </main>
+      ) : !isAuthenticated || !user ? (
+        <LoginScreen onLoginSuccess={handleLoginSuccess} />
+      ) : (
+        <div className="app-layout">
+          {/* Top Navigation */}
+          <Navbar
+            user={user}
+            onLogout={handleLogout}
+            onOpenAddModal={() => setIsAddModalOpen(true)}
+          />
+
+          {/* Main Content Area */}
+          <main className="main-content">
+            <div className="content-container">
+              {/* Global feedback message toast */}
+              {globalMessage && (
+                <div
+                  className={`alert ${globalMessage.type === 'success' ? 'alert-success' : 'alert-danger'} mb-4`}
+                  role="alert"
+                >
+                  <span>{globalMessage.text}</span>
+                </div>
+              )}
+
+              {/* Welcome & Action Header */}
+              <div className="page-header">
+                <div>
+                  <h1 className="page-title">Ledger Overview</h1>
+                  <p className="page-subtitle">
+                    Real-time loan balances and repayment tracking connected to your personal ledger.
+                  </p>
+                </div>
+
+                <div className="header-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={loadLedgerData}
+                    disabled={isLoadingData}
+                    title="Refresh loans and summary from server"
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={isLoadingData ? 'spin-icon' : ''}
+                      aria-hidden="true"
+                    >
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    <span>{isLoadingData ? 'Refreshing...' : 'Refresh'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setIsAddModalOpen(true)}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>Record Loan</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Financial Summary Cards */}
+              <SummaryCards summary={summary} totalLoansCount={loans.length} />
+
+              {/* Loan List or Empty State */}
+              {isLoadingData && loans.length === 0 ? (
+                <div className="card loading-card">
+                  <div className="spinner"></div>
+                  <p>Loading your loans from database...</p>
+                </div>
+              ) : loans.length === 0 ? (
+                <EmptyState onAddLoan={() => setIsAddModalOpen(true)} />
+              ) : (
+                <LoanList
+                  loans={loans}
+                  onRepayLoan={handleRepayLoan}
+                  onOpenAddModal={() => setIsAddModalOpen(true)}
+                />
+              )}
+            </div>
+          </main>
+        </div>
+      )}
 
       {/* Add Loan Modal Dialog */}
       <AddLoanModal
@@ -280,7 +280,7 @@ export const App: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleAddLoan}
       />
-    </div>
+    </>
   );
 };
 

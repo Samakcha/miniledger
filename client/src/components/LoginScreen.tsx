@@ -143,7 +143,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {step === 'PHONE' ? (
             /* Phone Number Step */
             <form onSubmit={handleRequestOtp} noValidate>
-              <div className="form-group">
+              <div className="form-group mb-4">
                 <label htmlFor="phoneNumber" className="form-label">
                   Mobile Phone Number
                 </label>
@@ -175,11 +175,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   <span>Send One-Time Code →</span>
                 )}
               </button>
-
-              <div className="demo-notice">
-                <span className="demo-tag">Backend Integration Active</span>
-                <p>The OTP is logged to the server terminal console: <code>[AUTH] Generated OTP for...</code></p>
-              </div>
             </form>
           ) : (
             /* OTP Verification Step */
@@ -250,11 +245,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </div>
             </form>
           )}
-        </div>
-
-        {/* Footer Note */}
-        <div className="login-footer">
-          <p>MiniLedger Personal Loan Tracker • Phase 6 Real API Integration</p>
         </div>
       </div>
     </div>
