@@ -1,170 +1,176 @@
 # MiniLedger
 
-MiniLedger is a clean, minimal personal finance application designed for tracking money lent to friends. It provides seamless phone-number OTP authentication, transparent ledger tracking, overdue loan highlighting, and real-time financial aggregate summaries with exact decimal precision.
+MiniLedger is a full-stack personal finance web application designed for tracking money lent to friends and managing repayments. Built with React, TypeScript, Node.js, Express, Prisma, and PostgreSQL, it provides passwordless phone-number OTP authentication, transparent ledger tracking, visual overdue loan alerts, and real-time financial summaries with exact decimal precision.
+
+---
+
+## Live Demo & Links
+
+- **Live Demo:** [https://miniledger-seven.vercel.app/](https://miniledger-seven.vercel.app/)
+- **GitHub Repository:** [https://github.com/Samakcha/miniledger](https://github.com/Samakcha/miniledger)
+- **Demo OTP:** `123456`
+
+### Quick Demo Login Instructions
+1. Open the deployed application (or navigate to `http://localhost:5173` if running locally).
+2. Enter your mobile phone number, including country code (e.g., `+1 555-019-2834` or `+91 9876543210`).
+3. Click **Send One-Time Code**.
+4. Enter the demo OTP: `123456`.
+5. Click **Verify & Open Dashboard** to access the application.
+
+> [!IMPORTANT]
+> **Demo Security Notice**: The fixed demo OTP (`123456`) is intentionally enabled (`DEMO_OTP_ENABLED=true`) solely for public demonstration and reviewer evaluation without requiring SMS gateway infrastructure. Entering a phone number in demo mode does **not** verify ownership of that phone number and is **not suitable for real financial use or real customer data**. Real production authentication requires disabling demo mode (`DEMO_OTP_ENABLED=false`) and implementing genuine phone-number verification via a telecommunications SMS gateway.
 
 ---
 
 ## Key Features
 
-- **Passwordless Phone OTP Authentication**: Log in securely using your phone number and a cryptographically generated 6-digit one-time password (OTP).
+- **Passwordless Phone OTP Authentication**: Login flow supporting local development (console-logged OTP), a public reviewer demo mode with fixed code `123456` (`DEMO_OTP_ENABLED=true`), and configurable production-ready authentication paths.
 - **Interactive Loan Ledger**: Record loans with friend names, amounts, and scheduled due dates.
-- **Overdue Recognition & Visual Alerts**: Automatically identifies past-due unpaid loans and emphasizes them with red styling and alert badges.
-- **Instant Repayment Tracking**: Mark loans as repaid with a single click, recording an immutable repayment timestamp and dynamically refreshing metrics.
-- **Real-Time Financial Metrics**: Instant calculation of **Total Lent**, **Total Repaid**, and **Overdue Amount** backed by database-level decimal arithmetic.
-- **Search & Dynamic Filters**: Fast client-side filtering by status (`All`, `Pending`, `Overdue`, `Repaid`) and instant search by friend name.
-- **Robust Multi-Tenant Security**: Strict user-level data isolation via JWT Bearer authentication; users can only view and mutate their own loans.
-
----
-
-## Demo Login
-
-MiniLedger currently supports demo OTP authentication, so you can test the application without receiving an SMS.
-
-**How to log in:**
-1. Open the MiniLedger website.
-2. Enter your phone number, including the country code.
-3. Click **Send One-Time Code**.
-4. Enter the demo OTP: `123456`.
-5. Click **Verify & Open Dashboard** to access the application.
-
-**Note:** The demo OTP is intended for testing and demonstration purposes. Real SMS delivery is not currently configured.
+- **Visual Overdue Alerts**: Past-due unpaid loans are automatically highlighted with prominent red badges and alert styling.
+- **One-Click Repayment Tracking**: Mark loans as repaid with a single click, recording an immutable timestamp (`repaidAt`) and updating metrics dynamically.
+- **Real-Time Financial Aggregates**: Immediate calculation of **Total Lent**, **Total Repaid**, and **Overdue Amount** backed by database-level decimal arithmetic (`Decimal(12, 2)`).
+- **Search & Dynamic Filters**: Fast client-side status filtering (`All`, `Pending`, `Overdue`, `Repaid`) and instant search by friend name.
+- **Multi-Tenant User Isolation**: Strict user-level data segregation enforced by JWT authentication; users can only view, create, and mutate their own records.
+- **Responsive Touch-First Design**: Optimized for desktop monitors, tablets, and mobile screens with custom CSS, fluid grids, and touch-accessible controls.
 
 ---
 
 ## Technology Stack
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 18, TypeScript, Vite, Vanilla CSS |
-| **Backend** | Node.js (v18+ LTS / v20+), Express, TypeScript, tsx |
-| **ORM & Database** | Prisma 6, PostgreSQL (Neon Serverless PostgreSQL) |
-| **Authentication** | Stateless JWT (`jsonwebtoken`), in-memory rate-limited OTP engine |
-| **Testing & Tooling** | Supertest, tsx, Node test assertions, ESLint-compatible TypeScript |
-| **Package Manager** | npm |
+| Layer | Technology | Version | Purpose |
+|---|---|---|---|
+| **Frontend** | React | ^18.3.1 | Single-page application UI |
+| | TypeScript | ^5.6.3 | Type-safe frontend architecture |
+| | Vite | ^6.0.1 | Frontend build tool and development server |
+| | CSS3 | Vanilla | Bespoke, responsive design system without external CSS frameworks |
+| **Backend** | Node.js | v18+ LTS | Server runtime environment |
+| | Express | ^4.21.2 | RESTful API server framework |
+| | TypeScript | ^5.6.3 | Type-safe backend application logic |
+| | tsx | ^4.19.2 | High-performance TypeScript execution and test runner |
+| **Database & ORM** | PostgreSQL | 14+ / Neon | Relational database (compatible with Neon Serverless PostgreSQL) |
+| | Prisma ORM | ^6.2.1 | Type-safe schema definition, migrations, and queries |
+| **Security & Auth** | JSON Web Tokens | ^9.0.3 | Stateless Bearer token session authentication |
+| | Node Crypto | Native | Cryptographic OTP generation and constant-time string comparison |
+| **Testing** | Supertest | ^7.3.1 | End-to-end HTTP integration testing |
 
 ---
 
-## Architecture Summary
+## Architecture Overview & Data Flow
 
-MiniLedger uses a lightweight monorepo architecture:
+MiniLedger follows a clean client-server architecture with strict separation of concerns:
+
+```text
+[ Browser / Client SPA ]
+         │
+         │  HTTPS / JSON
+         │  Authorization: Bearer <JWT>
+         ▼
+[ Express API Server ]
+    ├── CORS & JSON Body Parsing
+    ├── Authentication Middleware (JWT validation, req.user extraction)
+    ├── Input Normalization & Validation (E.164 phone, Decimal amounts, ISO dates)
+    ├── Rate Limiting & Abuse Protection
+    └── Prisma ORM Client
+         │
+         │  Parameterized SQL (WHERE "userId" = req.user.id)
+         ▼
+[ PostgreSQL Database (Neon) ]
+    ├── User Table (id UUID, phone, createdAt, updatedAt)
+    └── Loan Table (id UUID, userId, friendName, amount Decimal(12,2), dueDate, isRepaid, repaidAt)
+```
+
+### Core Architectural Decisions
+- **Monetary Precision**: Currency amounts are defined as `Decimal(12, 2)` in PostgreSQL and handled using Prisma's `Decimal` type to prevent IEEE 754 floating-point rounding errors.
+- **Stateless Session Management**: Authentication is issued as signed JWT tokens stored in browser `localStorage`, eliminating server-side session state for horizontal scalability.
+- **Cascading User Isolation**: Database queries explicitly filter by `userId` extracted from verified JWT tokens, preventing cross-user data leakage.
+
+---
+
+## Project Structure
 
 ```text
 miniledger/
-├── client/                      # Frontend SPA
+├── client/                      # Frontend React SPA
+│   ├── public/                  # Static assets and video backgrounds
 │   ├── src/
-│   │   ├── components/          # UI Components (Navbar, SummaryCards, LoanList, AddLoanModal, etc.)
-│   │   ├── services/api.ts      # Typed API client, token management & session handling
-│   │   ├── types/index.ts       # Shared TypeScript models (Loan, User, LoanSummary)
-│   │   ├── App.tsx              # Application root & authentication state machine
-│   │   ├── main.tsx             # React DOM entry point
-│   │   └── index.css            # Responsive modern financial dashboard styling
+│   │   ├── components/          # UI components (Navbar, SummaryCards, LoanList, etc.)
+│   │   ├── services/api.ts      # Typed API client, token storage & session handling
+│   │   ├── types/index.ts       # Shared TypeScript domain interfaces
+│   │   ├── App.tsx              # Root component & session state machine
+│   │   ├── main.tsx             # React application entry point
+│   │   ├── index.css            # Custom responsive design system
+│   │   └── vite-env.d.ts        # Vite environment variable type declarations
 │   ├── .env.example             # Frontend environment template
-│   ├── package.json
-│   └── vite.config.ts
-├── server/                      # Backend REST API
+│   ├── package.json             # Frontend scripts and dependencies
+│   └── vite.config.ts           # Vite configuration
+├── server/                      # Backend Express REST API
 │   ├── prisma/
 │   │   ├── migrations/          # Version-controlled SQL migration history
-│   │   └── schema.prisma        # Database schema definitions (User, Loan)
+│   │   └── schema.prisma        # Prisma data models (User, Loan)
 │   ├── src/
 │   │   ├── lib/prisma.ts        # Singleton Prisma client instance
-│   │   ├── middleware/auth.ts   # JWT verification middleware (authenticateToken)
+│   │   ├── middleware/auth.ts   # JWT authentication & validation middleware
 │   │   ├── routes/
-│   │   │   ├── auth.ts          # /api/auth routes (request-otp, verify-otp, me)
-│   │   │   └── loans.ts         # /api/loans routes (CRUD, repay, summary)
-│   │   ├── services/otp.ts      # Cryptographic OTP generator, in-memory store & rate-limiter
-│   │   ├── tests/               # Automated test suites (auth.test.ts, loans.test.ts)
-│   │   └── index.ts             # Express app setup, JSON parsers, CORS & health check
+│   │   │   ├── auth.ts          # Auth routes (/request-otp, /verify-otp, /me)
+│   │   │   └── loans.ts         # Loan CRUD, repayment & aggregate summary routes
+│   │   ├── services/otp.ts      # OTP generation, verification & rate-limiting engine
+│   │   ├── tests/
+│   │   │   ├── auth.test.ts     # Automated authentication test suite (18 tests)
+│   │   │   └── loans.test.ts    # Automated loan management test suite (11 tests)
+│   │   ├── types/express.d.ts   # Express request user typing extensions
+│   │   └── index.ts             # Express server setup, middleware & health check
 │   ├── .env.example             # Backend environment template
-│   ├── package.json
-│   └── tsconfig.json
+│   ├── package.json             # Backend scripts and dependencies
+│   └── tsconfig.json            # Backend TypeScript configuration
 ├── .gitignore                   # Excludes node_modules, build outputs, and all .env files
-├── walkthrough.md               # Detailed phase reports & verification audit
-└── README.md                    # Project documentation & reviewer guide
-```
-
-### Data Flow
-
-```text
-[ Browser (React SPA) ]
-         │
-         │ HTTP / JSON (Bearer JWT in Authorization header)
-         ▼
-[ Express API Server ]
-    ├── Auth Middleware (Verifies JWT, extracts req.user.id)
-    ├── Input Validation (E.164 phone, Decimal amounts, ISO dates)
-    └── Prisma ORM
-         │
-         │ Parameterized SQL queries (WHERE "userId" = req.user.id)
-         ▼
-[ Neon PostgreSQL Database ]
-    ├── User table (id, phone, createdAt)
-    └── Loan table (id, userId, friendName, amount Decimal(12,2), dueDate, isRepaid, repaidAt)
+└── README.md                    # Project documentation
 ```
 
 ---
 
 ## Prerequisites
 
-Before starting, ensure you have the following installed on your machine:
+Ensure the following tools are installed before setting up the application:
 
-- **Node.js**: Version 18.x or later (recommended: Node.js 20+ LTS or Node.js 22+)
-- **npm**: Version 9.x or later
-- **PostgreSQL Database**: A running PostgreSQL database instance (such as a free [Neon](https://neon.tech) cloud PostgreSQL database or local PostgreSQL 14+).
+- **Node.js**: Version 18.x or later (tested on v20 LTS and v24)
+- **npm**: Version 9.x or later (tested on v11)
+- **PostgreSQL**: A running PostgreSQL database instance (local PostgreSQL 14+ or a cloud database such as [Neon](https://neon.tech))
 
 ---
 
-## Environment Variables Configuration
+## Environment Variables
 
-Both the frontend and backend require local environment files. Templates with safe placeholders are provided in `.env.example`.
+Templates with safe default placeholders are provided in both `client/.env.example` and `server/.env.example`.
 
-### 1. Backend Configuration (`server/.env`)
+### 1. Backend (`server/.env`)
 
 Create `server/.env` by copying `server/.env.example`:
 
 ```bash
-cd server
-cp .env.example .env
+cp server/.env.example server/.env
 ```
 
-Configure the following variables in `server/.env`:
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | Optional | `5001` | Port on which the Express server listens |
+| `DATABASE_URL` | **Required** | — | PostgreSQL connection URL (e.g. `postgresql://user:pass@ep-xyz.neon.tech/neondb?sslmode=require`) |
+| `JWT_SECRET` | **Required** | — | Secret key used to sign and verify JSON Web Tokens |
+| `DEMO_OTP_ENABLED` | Optional | `false` | When set to `true`, enables fixed demo OTP verification (`123456`) |
 
-```env
-# Server listening port (default: 5001)
-PORT=5001
+> **Security Note**: `server/.env` is excluded by `.gitignore` and must never be committed to source control.
 
-# PostgreSQL connection string (Prisma)
-# Example for local PostgreSQL:
-# DATABASE_URL="postgresql://postgres:password@localhost:5432/miniledger?schema=public"
-# Example for Neon Serverless PostgreSQL:
-DATABASE_URL="postgresql://user:password@ep-example-123456.us-east-2.aws.neon.tech/neondb?sslmode=require"
-
-# Strong secret key for signing authentication JWT tokens
-JWT_SECRET="your-secure-random-jwt-secret-key-here"
-
-# Demo OTP mode toggle (disabled by default, set to true for reviewer demo deployments)
-DEMO_OTP_ENABLED=false
-```
-
-> **Security Note**: `server/.env` is strictly ignored by Git and must never be committed.
-
-### 2. Frontend Configuration (`client/.env`)
+### 2. Frontend (`client/.env`)
 
 Create `client/.env` by copying `client/.env.example`:
 
 ```bash
-cd client
-cp .env.example .env
+cp client/.env.example client/.env
 ```
 
-Configure `client/.env`:
-
-```env
-# Base URL for the Express API server
-VITE_API_BASE_URL=http://localhost:5001
-
-# Demo OTP mode toggle (disabled by default, set to true for reviewer demo deployments)
-VITE_DEMO_OTP_ENABLED=false
-```
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VITE_API_BASE_URL` | **Required** | `http://localhost:5001` | Base URL of the backend Express API |
+| `VITE_DEMO_OTP_ENABLED` | Optional | `false` | When set to `true`, displays demo mode notices and instructions |
 
 ---
 
@@ -176,24 +182,20 @@ From the repository root:
 
 ```bash
 # Install frontend dependencies
-cd client
-npm install
-cd ..
+npm --prefix client install
 
 # Install backend dependencies
-cd server
-npm install
-cd ..
+npm --prefix server install
 ```
 
-### Step 2: Database Migration & Prisma Client Generation
+### Step 2: Database Migration & Prisma Generation
 
-With your `DATABASE_URL` configured in `server/.env`:
+Ensure `DATABASE_URL` is configured in `server/.env`, then run:
 
 ```bash
 cd server
 
-# Apply database migrations to PostgreSQL
+# Apply database migrations
 npx prisma migrate deploy
 
 # Generate the type-safe Prisma client
@@ -202,26 +204,28 @@ npx prisma generate
 cd ..
 ```
 
-*(Note: During local schema development, you can use `npx prisma migrate dev` if modifying `schema.prisma`.)*
+*(Note: During local schema modifications, use `npx prisma migrate dev` to generate new migrations).*
 
 ---
 
-## Running the Application in Development
+## Running the Application Locally
 
 ### 1. Start the Backend API
+
+In your first terminal:
 
 ```bash
 cd server
 npm run dev
 ```
 
-The backend server starts on `http://localhost:5001` (or your configured `PORT`).
+The server will start on `http://localhost:5001`. Verify the health check:
 
-Verify the health check endpoint:
 ```bash
 curl http://localhost:5001/api/health
 ```
-Response:
+
+Expected response:
 ```json
 {
   "status": "ok",
@@ -232,7 +236,7 @@ Response:
 
 ### 2. Start the Frontend Client
 
-Open a second terminal window:
+In a second terminal:
 
 ```bash
 cd client
@@ -242,163 +246,211 @@ npm run dev
 The Vite dev server will start at:
 👉 **[http://localhost:5173](http://localhost:5173)**
 
-Open `http://localhost:5173` in your web browser.
+---
+
+## Authentication Modes & Demo Login
+
+MiniLedger explicitly differentiates public evaluation environments from production authentication requirements:
+
+### 1. Public Reviewer Demo Mode (`DEMO_OTP_ENABLED=true`)
+- **Purpose**: Intentionally enabled for hosted demonstration environments (e.g., Vercel) so reviewers and recruiters can evaluate the application workflow without needing an active SMS delivery gateway or access to server terminal logs.
+- **Fixed Demo OTP**: `123456`.
+- **Security Constraints & Reviewer Notice**:
+  - **Does NOT verify phone-number ownership**: Because the fixed code `123456` is accepted for any valid phone number, this mode does not verify physical possession or ownership of the entered phone number.
+  - **Not suitable for real financial use**: Intended solely for functional review and UI evaluation; strictly unsuitable for production systems handling real money or customer data.
+- **Stateless Serverless Execution**: Verification does not rely on shared in-memory state, ensuring reliable authentication across ephemeral serverless instances.
+- **Abuse Protection**: Enforces sliding-window request rate limiting (max 3 requests per 10 minutes) and locks out verification after 5 consecutive invalid codes for 10 minutes (HTTP 429).
+- **UI Indication**: The frontend automatically displays a clear `DEMO MODE ACTIVE` banner with instructions to use the demo OTP code `123456`.
+
+### 2. Local Development Mode (`DEMO_OTP_ENABLED=false`)
+- **Purpose**: Default mode for local development and offline testing.
+- **OTP Generation**: Backend generates a cryptographically secure random 6-digit OTP using `crypto.randomInt(100000, 1000000)`.
+- **Delivery**: The OTP is output solely to the backend terminal log:
+  ```text
+  [AUTH] Generated OTP for +15550192834: 849201
+  ```
+- **Security**: The OTP is **never exposed in HTTP API responses**. The fixed demo code `123456` is rejected unless explicitly generated.
+- **Lifecycle**: Stored in process memory with a 5-minute time-to-live (`TTL = 300000 ms`), limited to 5 verification attempts.
+
+### 3. Real Production Authentication Requirements
+To deploy MiniLedger for real financial use or customer-facing production workloads:
+1. **Disable Demo Mode**: Set `DEMO_OTP_ENABLED=false` (or leave unset) to reject any static demo codes.
+2. **Genuine Phone Verification**: Integrate a commercial telecommunications SMS gateway (e.g., Twilio, AWS SNS, MessageBird) to transmit dynamic, one-time verification codes directly to the recipient's mobile handset, verifying genuine ownership of the phone number.
+3. **Distributed Rate Limiting & Session Storage**: Replace in-memory stores with a distributed key-value store (e.g., Redis or Upstash) across serverless instances.
+4. **Hardened Token Transport**: Transmit JWT authentication tokens via `HttpOnly`, `Secure`, `SameSite=Strict` cookies with CSRF defense rather than browser `localStorage`.
 
 ---
 
-## How Mock OTP Authentication Works
+## API Overview
 
-MiniLedger uses a simulated SMS OTP flow tailored for development and testing without requiring third-party SMS gateway credentials (e.g. Twilio):
+All protected endpoints require an `Authorization: Bearer <token>` header.
 
-1. **User requests an OTP**: The user enters their phone number (e.g. `+1 202 555 0199`) in the web UI.
-2. **Server generates OTP**: The backend validates the phone format, generates a cryptographically secure 6-digit random code, and caches it in memory with a 5-minute time-to-live (TTL).
-3. **Delivery via Terminal Console**: The backend logs the generated code directly to the active terminal:
-   ```text
-   [AUTH] Generated OTP for +12025550199: 849201
-   ```
-4. **Security Enforcement**: The OTP is **never returned in the HTTP response**.
-5. **Verification & Login**: The user reads the code from the terminal, types it into the web UI, and clicks **Verify & Login**.
-6. **JWT Issuance**: Upon successful verification, the backend upserts the user in PostgreSQL and issues a signed JWT token. The frontend stores this token in browser `localStorage` and includes it as `Authorization: Bearer <token>` on all future requests.
+### Public Endpoints
+
+#### `GET /api/health`
+Health check endpoint confirming API availability.
+- **Response `200 OK`**: `{ "status": "ok", "message": "MiniLedger API is running", "timestamp": "..." }`
+
+#### `POST /api/auth/request-otp`
+Requests a one-time verification code for a phone number.
+- **Body**: `{ "phone": "+1 555-019-2834" }`
+- **Response `200 OK`**: `{ "success": true, "message": "OTP sent successfully" }` (or `{ "success": true, "demoMode": true, "message": "..." }`)
+- **Response `400 Bad Request`**: Malformed or missing phone number.
+- **Response `429 Too Many Requests`**: Rate limit exceeded (max 3 requests per 10 minutes).
+
+#### `POST /api/auth/verify-otp`
+Verifies the submitted OTP, creates or retrieves the user in PostgreSQL, and issues a JWT token.
+- **Body**: `{ "phone": "+1 555-019-2834", "otp": "123456" }`
+- **Response `200 OK`**: `{ "token": "<jwt>", "user": { "id": "<uuid>", "phone": "+15550192834", "createdAt": "..." } }`
+- **Response `400 Bad Request`**: Invalid OTP code or expired session.
+- **Response `429 Too Many Requests`**: Exceeded maximum verification attempts (5 attempts).
+
+### Protected Endpoints (Require Bearer JWT)
+
+#### `GET /api/auth/me`
+Retrieves profile details for the authenticated user.
+- **Response `200 OK`**: `{ "user": { "id": "<uuid>", "phone": "+15550192834", "createdAt": "...", "updatedAt": "..." } }`
+- **Response `401 Unauthorized`**: Missing or invalid token.
+
+#### `GET /api/loans`
+Lists all loans recorded by the authenticated user, ordered by `dueDate ASC, createdAt ASC`.
+- **Response `200 OK`**: `{ "loans": [ { "id": "<uuid>", "friendName": "Alex", "amount": "150.00", "dueDate": "...", "isRepaid": false, "repaidAt": null, "createdAt": "...", "updatedAt": "...", "userId": "<uuid>" } ] }`
+
+#### `POST /api/loans`
+Records a new loan owned by the authenticated user.
+- **Body**:
+  ```json
+  {
+    "friendName": "Alex Rivera",
+    "amount": "150.00",
+    "dueDate": "2026-11-15T00:00:00.000Z"
+  }
+  ```
+- **Validation**:
+  - `friendName`: Non-empty string, max 100 characters.
+  - `amount`: Positive numeric string or number with at most 2 decimal places, max `9,999,999,999.99`.
+  - `dueDate`: Valid ISO 8601 date string.
+- **Response `201 Created`**: `{ "loan": { ... } }`
+
+#### `GET /api/loans/summary`
+Calculates aggregated loan totals across the authenticated user's records using exact database decimal arithmetic.
+- **Response `200 OK`**:
+  ```json
+  {
+    "totalLent": "1250.00",
+    "totalRepaid": "750.00",
+    "overdueAmount": "200.00"
+  }
+  ```
+
+#### `PATCH /api/loans/:id/repay`
+Marks a specified loan as repaid. Idempotent: repeating the call preserves the original repayment timestamp.
+- **Response `200 OK`**: `{ "message": "Loan marked as repaid successfully", "loan": { ... "isRepaid": true, "repaidAt": "..." } }`
+- **Response `404 Not Found`**: Loan ID does not exist or belongs to another user.
 
 ---
 
-## Running Automated Tests
+## Automated Testing
 
-MiniLedger includes an automated test suite covering authentication, security edge cases, loan business rules, and decimal calculation integrity.
+The backend includes a comprehensive automated test suite consisting of **29 tests** covering authentication security, token validation, decimal precision, and loan isolation.
 
-Run the test suite from the repository root:
+### Running Tests
 
-```bash
-npm --prefix server run test
-```
-
-Or from inside `server/`:
+From the repository root:
 
 ```bash
-cd server
-npm run test
+npm --prefix server test
 ```
 
-### Test Coverage Highlights (29 Tests Total)
+Or run individual suites:
 
-- **Authentication Suite (`auth.test.ts` — 18 tests)**:
-  - OTP request success without leaking OTP in response.
-  - Server console OTP logging validation.
-  - Correct OTP verification & token generation.
-  - Automatic user creation in PostgreSQL without duplicate records on re-login.
-  - Incorrect OTP rejection & single-use OTP invalidation (cannot reuse consumed OTP).
-  - Attempt rate-limiting protection.
-  - JWT middleware token validation and rejection of invalid/expired tokens.
-  - API health check stability.
+```bash
+# Run Authentication test suite (18 tests)
+npm --prefix server run test:auth
+
+# Run Loan Management test suite (11 tests)
+npm --prefix server run test:loans
+```
+
+### Test Suite Coverage (29 Tests Total)
+
+- **Authentication Suite (`server/src/tests/auth.test.ts` — 18 tests)**:
+  - OTP generation and delivery without leaking codes in HTTP responses.
+  - Server terminal logging validation.
+  - Successful OTP verification and signed JWT generation.
+  - Automatic user creation in PostgreSQL without duplicates on subsequent logins.
+  - Incorrect OTP rejection and attempt counter decrementing.
+  - Expired OTP rejection.
+  - Replay attack prevention (single-use OTP consumption).
+  - Rate limiting and maximum verification attempt lockout (HTTP 429).
+  - JWT middleware authorization and rejection of missing, invalid, or expired tokens.
+  - Health check endpoint availability.
   - Rejection of universal OTP `123456` when demo mode is disabled.
-  - Demo OTP request and verification with `123456` without requiring in-memory storage (serverless-compatible).
-  - Verification of demo-generated JWT against `/api/auth/me`.
-  - Strict rejection of invalid phone numbers in both demo and standard modes.
-  - Demo verification abuse protection (5-attempt lockout).
-- **Loan API Suite (`loans.test.ts` — 11 tests)**:
-  - Unauthenticated access rejection (401).
-  - Loan creation with valid friend name, decimal amount, and due date.
-  - Input rejection for empty names, negative amounts, or malformed dates.
-  - User isolation: prevention of cross-user data leakage or unauthorized repayment.
-  - Loan repayment marking (`isRepaid = true`, immutable `repaidAt`).
+  - Demo OTP request with `demoMode: true` without disclosing codes in the response body.
+  - Stateless demo verification with `123456` without requiring in-memory storage.
+  - Profile retrieval on `/api/auth/me` using demo-issued JWT tokens.
+  - Strict rejection of invalid phone formats in both demo and standard modes.
+  - Demo abuse protection lockout after 5 consecutive failed attempts.
+- **Loan API Suite (`server/src/tests/loans.test.ts` — 11 tests)**:
+  - Rejection of unauthenticated requests (HTTP 401).
+  - Valid loan creation with positive decimal amounts.
+  - Input rejection for empty names, negative/zero amounts, or malformed dates.
+  - Strict multi-tenant isolation: clients cannot create loans assigned to other users.
+  - Filtered listing: users can only view their own loans.
+  - Cross-user data isolation: users cannot inspect or repay another user's loan.
+  - Repayment marking (`isRepaid = true`, immutable `repaidAt`).
   - Idempotent repayment handling.
-  - Financial summary aggregation (`totalLent`, `totalRepaid`, `overdueAmount`).
+  - Accurate aggregate calculations (`totalLent`, `totalRepaid`, `overdueAmount`).
   - Empty ledger handling (`0.00` totals).
-  - Exact decimal precision preservation without floating-point drift (`0.10 + 0.20 + 999.99 = 1000.29`).
+  - Arbitrary precision decimal preservation (`0.10 + 0.20 + 999.99 = 1000.29`).
 
 ---
 
-## Production Builds
+## Production Builds & Verification
 
-Both frontend and backend compile to standalone production builds:
+Both the client and server compile into optimized production distributions:
 
 ```bash
-# Build backend
-cd server
-npm run build
-# Generated artifacts in server/dist/
+# 1. Build and test backend
+npm --prefix server run build     # Compiles TypeScript to server/dist/
+npm --prefix server start         # Runs compiled server/dist/index.js
 
-# Test backend production execution
-npm start
-
-# Build frontend
-cd ../client
-npm run build
-# Generated optimized static bundle in client/dist/
-
-# Preview production frontend build
-npm run preview
+# 2. Build and preview frontend
+npm --prefix client run build     # Type-checks and bundles static assets to client/dist/
+npm --prefix client run preview   # Previews production frontend build locally
 ```
 
 ---
 
-## Reviewer Demo Walkthrough (Step-by-Step)
+## Security Considerations & Limitations
 
-Follow this 5-minute walkthrough to verify the complete MiniLedger MVP:
+MiniLedger was designed as a production-grade prototype. The following security considerations and limitations should be noted:
 
-1. **Launch Services**:
-   - Terminal 1: `cd server && npm run dev`
-   - Terminal 2: `cd client && npm run dev`
-2. **Access Application**:
-   - Open [http://localhost:5173](http://localhost:5173).
-3. **Log In with Mock OTP**:
-   - Enter any valid phone number (e.g. `+1 202 555 0199`) and click **Send OTP**.
-   - Check Terminal 1 for `[AUTH] Generated OTP for +12025550199: XXXXXX`.
-   - Enter the 6-digit code into the UI and click **Verify & Login**.
-4. **Observe Empty Ledger**:
-   - Notice the initial dashboard state: **Total Lent: $0.00**, **Total Repaid: $0.00**, **Overdue: $0.00**, with the empty ledger graphic.
-5. **Record a Future Loan**:
-   - Click **+ Add Loan**.
-   - Enter Friend Name: `Alice`, Amount: `150.00`, Due Date: (any future date, e.g. next month).
-   - Click **Save Loan**.
-   - Summary updates immediately: **Total Lent: $150.00**, **Overdue: $0.00**.
-6. **Record an Overdue Loan**:
-   - Click **+ Add Loan**.
-   - Enter Friend Name: `Bob`, Amount: `75.50`, Due Date: (any past date, e.g. last week).
-   - Click **Save Loan**.
-   - Notice Bob's row is highlighted with a red badge and alert styling.
-   - Summary updates immediately: **Total Lent: $225.50**, **Overdue: $75.50**.
-7. **Mark Overdue Loan as Repaid**:
-   - In Bob's row, click **Mark Repaid**.
-   - Bob's status changes to `Repaid`.
-   - Summary updates in real time: **Overdue Amount drops to $0.00**, and **Total Repaid becomes $75.50**.
-8. **Test Dynamic Filters & Search**:
-   - Type `Alice` into the search box: only Alice's record is displayed.
-   - Click filter pill **Repaid**: only Bob's repaid record is displayed.
-   - Click filter pill **Pending**: only Alice's pending loan is displayed.
-9. **Verify Session Restoration & Sign Out**:
-   - Refresh the browser (`Cmd+R` / `F5`). The session and ledger persist automatically via `GET /api/auth/me`.
-   - Click **Sign Out** in the navigation header. The JWT is erased from `localStorage` and the view returns to the Login screen.
+1. **Public Reviewer Demo vs. Real Production Authentication**:
+   - **Public Reviewer Demo (`DEMO_OTP_ENABLED=true`)**: The fixed demo OTP (`123456`) is intentionally enabled for evaluation and demonstration only. It **does not verify phone-number ownership** and is **not suitable for real financial use or real customer data**.
+   - **Real Production Authentication**: Real production deployments require disabling demo mode (`DEMO_OTP_ENABLED=false`) and implementing genuine phone-number verification via a commercial telecom SMS gateway (e.g., Twilio, AWS SNS) to confirm physical possession of the phone number.
+2. **SMS Gateway Integration**:
+   - Real SMS delivery via an external telecommunications provider is not currently configured in this codebase; verification codes are either printed to server terminal logs during local development or fixed to `123456` when demo mode is explicitly enabled.
+3. **In-Memory State**:
+   - In local development mode, OTP storage and rate-limiting counters are held in Node.js process memory.
+   - In a multi-instance production environment, this should be replaced with a distributed cache such as Redis.
+4. **Token Storage**:
+   - JWT tokens are stored in browser `localStorage` for single-page application simplicity. In high-assurance production environments, tokens should be transmitted via `HttpOnly`, `Secure` cookies with CSRF defense.
+5. **Data Isolation**:
+   - Strict row-level tenant isolation is enforced at the API layer. All queries filter by `userId` extracted directly from the cryptographically verified JWT payload.
+6. **Secret Management**:
+   - Database credentials and JWT secrets are managed strictly through environment variables and excluded from Git.
 
 ---
 
-## Known Limitations & Future Roadmap
+## Future Roadmap
 
-1. **Mock OTP Delivery**:
-   - *Current Implementation*: For local evaluation and automated testing, OTPs are printed to the backend terminal console and stored in memory with TTL expiration.
-   - *Production Roadmap*: In a commercial deployment, integrate a third-party SMS provider (e.g., Twilio or AWS SNS) and back the OTP cache with a Redis cluster.
-2. **In-Memory Rate Limiting**:
-   - *Current Implementation*: Authentication attempt rate-limiting is held in backend Node process memory.
-   - *Production Roadmap*: Use distributed Redis rate-limiting (e.g., sliding window via Redis) to support multi-instance backend clusters.
-3. **Manual Browser & Viewport Verification**:
-   - The UI is designed with modern responsive CSS flexbox/grid layout and tested for standard desktop and tablet viewports. Detailed physical mobile device testing across older browser versions (e.g. Safari iOS 15) remains a manual review step.
-4. **Receipts & Multi-Currency**:
-   - MiniLedger MVP operates on a single base currency format (`$`). Support for multi-currency loans, partial installment payments, and receipt attachment uploads are planned for future versions.
-
----
-
-## Implementation Status
-
-| Phase | Description | Status |
-|---|---|---|
-| **Phase 1** | Project Setup, Monorepo Architecture & Express Health Check | ✅ Complete |
-| **Phase 2** | Database Configuration, Neon PostgreSQL & Prisma Models | ✅ Complete |
-| **Phase 3** | Phone OTP Authentication, JWT Middleware & Unit Tests | ✅ Complete |
-| **Phase 4** | Loan Management REST APIs, Decimal Arithmetic & Test Suite | ✅ Complete |
-| **Phase 5** | React Frontend UI, Component Hierarchy & Design Styling | ✅ Complete |
-| **Phase 6** | Frontend–Backend Integration, Live State & Session Persistence | ✅ Complete |
-| **Phase 7** | Full MVP Verification, Edge-Case Stabilization & Security Audit | ✅ Complete |
-| **Phase 8** | Submission Preparation, Documentation, Cleanup & Demo Plan | ✅ Complete |
+- Integration with a live SMS provider (e.g., Twilio, MessageBird, AWS SNS).
+- Distributed rate-limiting and session caching using Redis.
+- Installment schedules and partial repayment tracking.
+- Multi-currency support and localized formatting.
+- Receipt image uploads and attachment storage.
+- Export ledger data to CSV and PDF formats.
 
 ---
 
